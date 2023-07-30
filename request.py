@@ -1,5 +1,5 @@
 import requests
-
+import time
 from config import token
 
 
@@ -331,8 +331,11 @@ def create_order(show_id, session_id, seat_plan_id, price: int, qty: int, delive
         raise Exception("不支持的deliver_method:" + str(deliver_method))
 
     url = "https://m.piaoxingqiu.com/cyy_gatewayapi/trade/buyer/order/v3/create_order"
-    response = requests.post(url=url, headers=headers, json=data).json()
-    if response["statusCode"] == 200:
-        print("下单成功！请尽快支付！")
-    else:
-        raise Exception("下单异常:" + str(response))
+    while True:
+        response = requests.post(url=url, headers=headers, json=data).json()
+        if response["statusCode"] == 200:
+            print("下单成功！请尽快支付！")
+            break
+        else:
+            print("下单失败，1秒后重试", str(response))
+            time.sleep(1)  # 等待1秒
