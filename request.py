@@ -1,6 +1,9 @@
+import os
+
 import requests
-import time
-from config import token
+import logging
+import threading
+from time import sleep
 
 
 # 根据项目id获取所有场次和在售状态
@@ -14,8 +17,7 @@ def get_sessions(show_id) -> list | None:
     if response["statusCode"] == 200:
         return response["data"]["sessionVOs"]
     else:
-        print("get_sessions异常:" + str(response))
-    return None
+        raise Exception("get_sessions异常:" + str(response))
 
 
 # 根据场次id获取座位信息
@@ -47,7 +49,7 @@ def get_seat_count(show_id, session_id) -> list:
 
 
 # 获取门票类型（快递送票EXPRESS,电子票E_TICKET,现场取票VENUE,电子票或现场取票VENUE_E）
-def get_deliver_method(show_id, session_id, seat_plan_id, price: int, qty: int) -> str:
+def get_deliver_method(token, show_id, session_id, seat_plan_id, price: int, qty: int) -> str:
     headers = {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Mobile Safari/537.36',
         'Content-Type': 'application/json',
@@ -83,7 +85,7 @@ def get_deliver_method(show_id, session_id, seat_plan_id, price: int, qty: int) 
 
 
 # 获取观演人信息
-def get_audiences() -> list | None:
+def get_audiences(token) -> list | None:
     headers = {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Mobile Safari/537.36',
         'Content-Type': 'application/json',
@@ -94,12 +96,11 @@ def get_audiences() -> list | None:
     if response["statusCode"] == 200:
         return response["data"]
     else:
-        print("get_audiences异常:" + str(response))
-    return None
+        raise Exception("get_audiences异常:" + str(response))
 
 
 # 获取收货地址
-def get_address() -> dict | None:
+def get_address(token) -> dict | None:
     headers = {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Mobile Safari/537.36',
         'Content-Type': 'application/json',
@@ -110,12 +111,11 @@ def get_address() -> dict | None:
     if response["statusCode"] == 200:
         return response["data"]
     else:
-        print("get_address异常:" + str(response))
-    return None
+        raise Exception("get_address异常:" + str(response))
 
 
 # 获取快递费
-def get_express_fee(show_id, session_id, seat_plan_id, price: int, qty: int, location_city_id: str) -> dict:
+def get_express_fee(token, show_id, session_id, seat_plan_id, price: int, qty: int, location_city_id: str) -> dict:
     headers = {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Mobile Safari/537.36',
         'Content-Type': 'application/json',
@@ -153,9 +153,8 @@ def get_express_fee(show_id, session_id, seat_plan_id, price: int, qty: int, loc
 
 
 # 提交订单（快递送票EXPRESS,电子票E_TICKET,现场取票VENUE,电子票或现场取票VENUE_E）
-def create_order(show_id, session_id, seat_plan_id, price: int, qty: int, deliver_method, express_fee: int, receiver,
-                 cellphone,
-                 address_id, detail_address, location_city_id, audience_ids: list):
+def create_order(token, show_id, session_id, seat_plan_id, price: int, qty: int, deliver_method, express_fee: int,
+                 receiver, cellphone, address_id, detail_address, location_city_id, audience_ids: list):
     headers = {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Mobile Safari/537.36',
         'Content-Type': 'application/json',
@@ -334,8 +333,10 @@ def create_order(show_id, session_id, seat_plan_id, price: int, qty: int, delive
     while True:
         response = requests.post(url=url, headers=headers, json=data).json()
         if response["statusCode"] == 200:
-            print("下单成功！请尽快支付！")
+            logging.info(f"{threading.current_thread().name}下单成功！请尽快支付！")
+            # 打开计算器 成功标志
+            os.system('calc')
             break
         else:
-            print("下单失败，1秒后重试", str(response))
-            time.sleep(1)  # 等待1秒
+            logging.info(f"{threading.current_thread().name}下单失败，1秒后重试:{response}")
+            sleep(1)  # 等待1秒
